@@ -1,6 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IUser extends Document {
+  userId: number;
   name: string;
   email: string;
   phone?: string;
@@ -11,6 +12,11 @@ export interface IUser extends Document {
 
 const UserSchema = new Schema<IUser>(
   {
+    userId: {
+      type: Number,
+      unique: true,
+      index: true
+    },
     name: {
       type: String,
       required: [true, 'Name is required'],
@@ -39,5 +45,37 @@ const UserSchema = new Schema<IUser>(
     timestamps: true
   }
 );
+
+// Counter schema for auto-incrementing userId
+interface ICounter extends Document {
+  _id: string;
+  seq: number;
+}
+
+const CounterSchema = new Schema<ICounter>({
+  _id: { type: String, required: true },
+  seq: { type: Number, default: 0 }
+});
+
+const Counter = mongoose.model<ICounter>('Counter', CounterSchema);
+
+// Pre-save hook to auto-increment userId
+UserSchema.pre('save', async function(next) {
+  if (this.isNew) {
+    try {
+      const counter = await Counter.findByIdAndUpdate(
+        { _id: 'userId' },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+      );
+      this.userId = counter.seq;
+      next();
+    } catch (error) {
+      next(error as Error);
+    }
+  } else {
+    next();
+  }
+});
 
 export const User = mongoose.model<IUser>('User', UserSchema);

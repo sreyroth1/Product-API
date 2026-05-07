@@ -14,9 +14,45 @@ export interface UpdateUserDTO {
   age?: number;
 }
 
+export interface UserResponseDTO {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string;
+  age?: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export class UserService {
+  /**
+   * Simple hash function to generate deterministic numeric IDs
+   */
+  private simpleHash(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash) % 100000; // 0-99999
+  }
+
+  /**
+   * Convert MongoDB document to response DTO (replace _id with numeric id)
+   */
+  private formatUserResponse(user: IUser): UserResponseDTO {
+    return {
+      id: user.userId || this.simpleHash(user._id.toString()),
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      age: user.age,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+  }
   // Create a new user
-  async createUser(data: CreateUserDTO): Promise<IUser> {
+  async createUser(data: CreateUserDTO): Promise<UserResponseDTO> {
     try {
       this.validateUserInput(data);
       
@@ -32,48 +68,54 @@ export class UserService {
         name: data.name.trim()
       });
       
-      return await user.save();
+      const savedUser = await user.save();
+      return this.formatUserResponse(savedUser);
     } catch (error) {
       throw error;
     }
   }
 
   // Get all users
-  async getAllUsers(skip: number = 0, limit: number = 10): Promise<IUser[]> {
+  async getAllUsers(skip: number = 0, limit: number = 10): Promise<UserResponseDTO[]> {
     try {
-      return await User.find()
+      const users = await User.find()
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 });
+      return users.map(user => this.formatUserResponse(user));
     } catch (error) {
       throw error;
     }
   }
 
   // Get user by ID
-  async getUserById(userId: string): Promise<IUser | null> {
+  async getUserById(userId: string): Promise<UserResponseDTO> {
     try {
       const user = await User.findById(userId);
       if (!user) {
         throw new Error('User not found');
       }
-      return user;
+      return this.formatUserResponse(user);
     } catch (error) {
       throw error;
     }
   }
 
   // Get user by email
-  async getUserByEmail(email: string): Promise<IUser | null> {
+  async getUserByEmail(email: string): Promise<UserResponseDTO | null> {
     try {
-      return await User.findOne({ email: email.toLowerCase() });
+      const user = await User.findOne({ email: email.toLowerCase() });
+      if (!user) {
+        return null;
+      }
+      return this.formatUserResponse(user);
     } catch (error) {
       throw error;
     }
   }
 
   // Update user
-  async updateUser(userId: string, data: UpdateUserDTO): Promise<IUser> {
+  async updateUser(userId: string, data: UpdateUserDTO): Promise<UserResponseDTO> {
     try {
       if (Object.keys(data).length === 0) {
         throw new Error('No fields to update');
@@ -107,7 +149,7 @@ export class UserService {
         throw new Error('User not found');
       }
 
-      return updatedUser;
+      return this.formatUserResponse(updatedUser);
     } catch (error) {
       throw error;
     }

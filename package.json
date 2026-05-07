@@ -1,5 +1,5 @@
 {
-  "name": "typescript-mongodb-crud",
+  "name": "product-api",
   "version": "1.0.0",
   "description": "Node.js TypeScript MongoDB CRUD API",
   "main": "dist/server.js",
