@@ -1,34 +1,6 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response } from 'express';
+import { BaseController } from './baseController';
 import userService from '../services/user.service';
-
-// Base Controller for consistent response handling
-export class BaseController {
-  protected sendSuccess(res: Response, data: any, statusCode: number = 200): Response {
-    return res.status(statusCode).json({
-      success: true,
-      data
-    });
-  }
-  protected sendError(res: Response, message: string, statusCode: number = 400): Response {
-    return res.status(statusCode).json({
-      success: false,
-      message
-    });
-  }
-  protected async handleAsyncError(
-    res: Response,
-    asyncFn: () => Promise<any>
-  ): Promise<any> {
-    try {
-      return await asyncFn();
-    } catch (error) {
-      if (error instanceof Error) {
-        return this.sendError(res, error.message, 400);
-      }
-      return this.sendError(res, 'An unexpected error occurred', 500);
-    }
-  }
-}
 
 // User Controller
 export class UserController extends BaseController {
@@ -88,7 +60,7 @@ export class UserController extends BaseController {
       }
 
       const user = await userService.getUserByEmail(email as string);
-      
+
       if (!user) {
         return this.sendError(res, 'User not found', 404);
       }

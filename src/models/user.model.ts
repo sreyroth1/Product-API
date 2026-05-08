@@ -1,14 +1,5 @@
-import mongoose, { Schema, Document } from 'mongoose';
-
-export interface IUser extends Document {
-  userId: number;
-  name: string;
-  email: string;
-  phone?: string;
-  age?: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import mongoose, { Schema } from 'mongoose';
+import { IUser, ICounter } from '../interfaces/user.interface';
 
 const UserSchema = new Schema<IUser>(
   {
@@ -47,11 +38,6 @@ const UserSchema = new Schema<IUser>(
 );
 
 // Counter schema for auto-incrementing userId
-interface ICounter extends Document {
-  _id: string;
-  seq: number;
-}
-
 const CounterSchema = new Schema<ICounter>({
   _id: { type: String, required: true },
   seq: { type: Number, default: 0 }
